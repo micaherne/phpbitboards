@@ -1,0 +1,16 @@
+{
+	"name" : "micaherne/bitboards",
+	"require-dev" : {
+		"phpunit/phpunit" : "*"
+	},
+	"authors" : [{
+			"name" : "Michael Aherne",
+			"email" : "micaherne@blueyonder.co.uk"
+		}
+	],
+	"autoload" : {
+		"psr-4" : {
+			"Micaherne\\Bitboards\\" : "src"
+		}
+	}
+}
