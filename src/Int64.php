@@ -148,4 +148,12 @@ class Int64 {
 	public function __toString() {
 		return $this->out();
 	}
+
+	public function getA() {
+	    return $this->a;
+	}
+	
+	public function getB() {
+	    return $this->b;
+	}
 }
