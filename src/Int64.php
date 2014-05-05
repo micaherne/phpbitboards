@@ -148,6 +148,10 @@ class Int64 {
 	public function __toString() {
 		return $this->out();
 	}
+	
+	public function toHex() {
+		return dechex($this->a).dechex($this->b);
+	}
 
 	public function getA() {
 	    return $this->a;
