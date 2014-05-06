@@ -41,6 +41,20 @@ class MoveGenerator {
 		$moves = self::advancePawns($pawns, $whiteToMove)->bAnd($emptySquares);
 		$doubleMoves = self::advancePawns($moves->bAnd(UtilBB::$pawnDoubleMoveMask[$sideToMove]), $sideToMove)->bAnd($emptySquares);
 
+		// If promotions exist, generate them first and remove from moves
+		$promotionsExist = $moves->bAnd(UtilBB::$pawnPromotionMask[$sideToMove])->hasBitsSet();
+		if ($promotionsExist) {
+			$promotionMoves = $moves->bAnd(UtilBB::$pawnPromotionMask[$sideToMove]);
+			while($promotionMoves->hasBitsSet()) {
+				$msq = $promotionMoves->lsb();
+				foreach(Piece::$promotionPieces as $piece) {
+					$result[] = array($msq - UtilBB::$pawnMoveOffset[$sideToMove][0], $msq, $piece * UtilBB::$colourMultiplier[$sideToMove]);
+				}
+				$promotionMoves->unsetBit($msq);
+				$moves->unsetBit($msq);
+			}
+		}
+
 		while($moves->hasBitsSet()) {
 			$msq = $moves->lsb();
 			$result[] = array($msq - UtilBB::$pawnMoveOffset[$sideToMove][0], $msq);
@@ -56,7 +70,7 @@ class MoveGenerator {
 		$pawns = $p->getPieceBitboard($sideToMove, Piece::$PAWN);
 		while($pawns->hasBitsSet()) {
 			$bsq = $pawns->lsb();
-			$moves = UtilBB::$pawnAttacks[$sideToMove][$sq]->bAnd($enemyPieces);
+			$moves = UtilBB::$pawnAttacks[$sideToMove][$sq]->bAnd($enemyPieces->bOr($p->ep));
 			while($moves->hasBitsSet()) {
 				$msq = $moves->lsb();
 				$result[] = array($bsq, $msq);
@@ -64,8 +78,6 @@ class MoveGenerator {
 			}
 			$pawns->unsetBit($bsq);
 		}
-
-		// TODO: e.p.
 
 		// Bishop moves
 		$bishops = $p->getPieceBitboard($sideToMove, Piece::$BISHOP);
@@ -118,6 +130,19 @@ class MoveGenerator {
 				$moves->unsetBit($msq);
 			}
 			$kings->unsetBit($bsq);
+		}
+
+		// Castling
+		$castling = $p->castling[$sideToMove];
+		if ($castling > 0) {
+			for($i = 0; $i <= 1; $i++) {
+				if ($castling && pow(2, $i) != 0) {
+					if (!$occupied->bAnd(UtilBB::$castlingUnoccupied[$sideToMove][$i])->hasBitsSet()) {
+						// $bsq is still set from above
+						$result[] = array($bsq, $bsq + (($i << 2) - 2));
+					}
+				}
+			}
 		}
 
 		return $result;

@@ -11,10 +11,10 @@ class Piece {
 	public static $ROOK = 4;
 	public static $QUEEN = 5;
 	public static $KING = 6;
-	
+
 	public static $BLACK = 0;
 	public static $WHITE = 1;
-	
+
 	/*
 	 * A two-way array of piece number to string representation
 	 */
@@ -44,5 +44,9 @@ class Piece {
 			-4 => 'r',
 			-5 => 'q',
 			-6 => 'k'
+	);
+
+	public static $promotionPieces = array(
+	    5, 4, 3, 2 // queen, rook, knight, bishop
 	);
 }

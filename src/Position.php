@@ -8,15 +8,24 @@ use Micaherne\Bitboards\Exception\FENException;
 class Position {
 
 	// Array of BitBoardPieces objects for each side's pieces
-	private $colour = array(null, null);
+	public $colour = array(null, null);
 
 	// 64 item array of squares
-	private $board = array();
+	public $board = array();
 
-	private $materialEvaluation;
-	private $kingSquare = array(null, null);
+	public $materialEvaluation;
+	public $kingSquare = array(null, null);
 
-	private $whiteToMove = true;
+	public $whiteToMove = true;
+
+	public $castling = array(3, 3); // KQ
+
+	public $ep; // Bitboard
+	public $halfmove = 0;
+	public $fullmove = 0;
+
+	// Stack of undo data created by move()
+	public $undoStack = array();
 
 	public static $START_POSITION = 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1';
 
@@ -40,6 +49,19 @@ class Position {
 
 	public function getBoardPiece($index) {
 		return $this->board[$index];
+	}
+
+	public function move($move) {
+		$sideToMove = $whiteToMove ? Piece::$WHITE : Piece::$BLACK;
+		$undo = array('move' => $move,
+			'movedPiece' => $this->board[$move[0]], // used for pawn promotions
+			'capturedPiece' => $this->board[$move[1]],
+			'ep' => $this->ep,
+			'castling' => $this->castling[$sideToMove],
+			'halfmove' => $this->halfmove
+		);
+		$this->undoStack[] = $undo;
+
 	}
 
 	/**
@@ -101,6 +123,38 @@ class Position {
 		} else if ($validate) {
 			throw new FENException("Invalid side to move {$parts[1]}");
 		}
+
+		$this->castling = array(0, 0);
+		if ($parts[2] != '-') {
+			foreach(str_split($parts[2]) as $char) {
+				switch($char) {
+				    case 'K':
+				    	$this->castling[Piece::$WHITE] += 2;
+				    	break;
+				    case 'Q':
+				    	$this->castling[Piece::$WHITE] += 1;
+				    	break;
+				    case 'k':
+				    	$this->castling[Piece::$BLACK] += 2;
+				    	break;
+				    case 'q':
+				    	$this->castling[Piece::$BLACK] += 1;
+				    	break;
+				    default:
+				    	throw new FENException("Invalid castling type $char");
+				}
+			}
+		}
+
+		$this->ep = new BitBoard();
+		if ($parts[3] != '-') {
+			$file = ord($parts[3]{0}) - ord("a");
+			$rank = $parts[3]{1} - 1;
+			$this->ep->setBit(self::squareIndex($file, $rank));
+		}
+
+		$this->halfmove = $parts[4];
+		$this->fullmove = $parts[5];
 
 		$this->setBitboards();
 	}

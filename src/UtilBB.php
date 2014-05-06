@@ -3,9 +3,9 @@
 namespace Micaherne\Bitboards;
 
 class UtilBB {
-	
+
 	private static $initialised = false;
-	
+
 	public static $plus1dir;
 	public static $plus7dir;
 	public static $plus8dir;
@@ -14,31 +14,37 @@ class UtilBB {
 	public static $minus7dir;
 	public static $minus8dir;
 	public static $minus9dir;
-	
+
 	public static $rankMask;
 	public static $fileMask;
-	
+
 	public static $pawnAttacks; // [2][65] - one per colour
 	public static $knightAttacks;
 	public static $rookAttacks;
 	public static $bishopAttacks;
 	public static $kingAttacks;
-	
+
+	// Squares between king and rook: array[colour][0 = K, 1 = Q]
+	public static $castlingUnoccupied;
+
 	static $knightsq = array(-17, -15, -10, -6, 6, 10, 15, 17);
 	static $bishopsq = array(-9, -7, 7, 9);
 	static $rooksq = array(-8, -1, 1, 8);
-	
+
 	public static $intervening;
 	public static $directions;
-	
+
 	public static $pawnMoveOffset = array(array()); //[2][2] - colour, squaresmoved
 	public static $pawnDoubleMoveMask = array();
+	public static $pawnPromotionMask = array();
+
+	public static $colourMultiplier = array();
 
 	public static function init() {
 		if (self::$initialised) {
 			return;
 		}
-		
+
 		self::$plus1dir = array();
 		self::$plus7dir = array();
 		self::$plus8dir = array();
@@ -47,16 +53,16 @@ class UtilBB {
 		self::$minus7dir = array();
 		self::$minus8dir = array();
 		self::$minus9dir = array();
-		
+
 		self::$pawnAttacks = array(array(), array());
 		self::$knightAttacks = array();
 		self::$rookAttacks = array();
 		self::$bishopAttacks = array();
 		self::$kingAttacks = array();
-		
+
 		self::$intervening = array(array());
 		self::$directions = array(array());
-		
+
 		for ($i = 0; $i < 64; $i++) {
 			self::$plus1dir[$i] = new BitBoard();
 			self::$plus7dir[$i] = new BitBoard();
@@ -67,7 +73,7 @@ class UtilBB {
 			self::$minus8dir[$i] = new BitBoard();
 			self::$minus9dir[$i] = new BitBoard();
 		}
-		
+
 		/*
 		 masks to select bits on a specific rank or file
 		*/
@@ -82,7 +88,7 @@ class UtilBB {
 		for ($i = 1; $i < 8; $i++) {
 			self::$fileMask[$i] = self::$fileMask[$i - 1]->bShiftLeft(1);
 		}
-		
+
 		for ($i = 0; $i < 64; $i++) {
 			self::$pawnAttacks[Piece::$WHITE][$i] = new BitBoard();
 			if ($i < 56) {
@@ -104,11 +110,14 @@ class UtilBB {
 							}
 				}
 		}
-		
+
 		// Pawn constants
 		self::$pawnMoveOffset = array(Piece::$BLACK => array(-8, -16), Piece::$WHITE => array(8, 16));
 		self::$pawnDoubleMoveMask = array(Piece::$BLACK => self::$rankMask[6], Piece::$WHITE => self::$rankMask[2]);
-		
+		self::$pawnPromotionMask = array(Piece::$BLACK => self::$rankMask[0], Piece::$WHITE =>self::$rankMask[7]);
+
+		self::$colourMultiplier = array(Piece::$BLACK => -1, Piece::$WHITE => 1);
+
 		/*
 		 initialize knight attack board
 		*/
@@ -129,7 +138,7 @@ class UtilBB {
 				self::$knightAttacks[$i]->setBit($sq);
 			}
 		}
-		
+
 		/*
 		 initialize bishop/queen attack boards and masks
 		*/
@@ -154,7 +163,7 @@ class UtilBB {
 						}
 			}
 		}
-		
+
 		self::$plus1dir[64] = 0;
 		self::$plus7dir[64] = 0;
 		self::$plus8dir[64] = 0;
@@ -213,7 +222,7 @@ class UtilBB {
 					self::$kingAttacks[$i]->setBit($j);
 			}
 		}
-		
+
 		/*
 		 direction[sq1][sq2] gives the "move direction" to move from
 		sq1 to sq2.  intervening[sq1][sq2] gives a bit vector that indicates
@@ -284,30 +293,40 @@ class UtilBB {
 				$sqs->unsetBit($j);
 			}
 		}
-		
+
+		// Initialise castling intervening squares
+		self::$castlingUnoccupied = array(array(), array());
+		$kcastle = new BitBoard(0, 0x60);
+		$qcastle = new BitBoard(0, 14);
+		self::$castlingUnoccupied[Piece::$WHITE][0] = $kcastle;
+		self::$castlingUnoccupied[Piece::$BLACK][0] = $kcastle->bShiftLeft(56);
+		self::$castlingUnoccupied[Piece::$WHITE][1] = $qcastle;
+		self::$castlingUnoccupied[Piece::$BLACK][1] = $qcastle->bShiftLeft(56);
+
+
 		self::$initialised = true;
 	}
-	
+
 	public static function rank($sq) {
 		return $sq >> 3;
 	}
-	
+
 	public static function file($sq) {
 		return $sq & 7;
 	}
-	
+
 	public static function fileDistance($a, $b) {
 		return abs(self::file($a) - self::file($b));
 	}
-	
+
 	public static function rankDistance($a, $b) {
 		return abs(self::rank($a) - self::rank($b));
 	}
-	
+
 	public static function distance($a, $b) {
 		return max(array(self::fileDistance($a, $b), self::rankDistance($a, $b)));
 	}
-	
+
 }
 
 UtilBB::init();
