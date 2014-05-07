@@ -10,6 +10,15 @@ class MoveGenerator {
 		self::$sliders = new Sliders();
 	}
 
+	/**
+	 * Generate all pseudolegal moves for the side to move in the given position.
+	 *
+	 * This does not check whether the move leaves the king in check.
+	 *
+	 * @param Position $p
+	 * @param boolean $whiteToMove
+	 * @return array moves (from, to, [promotion piece])
+	 */
 	public static function generateMoves(Position $p, $whiteToMove) {
 
 		$result = array();
